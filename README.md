@@ -27,13 +27,17 @@ by combining **side-scan sonar analysis** with a live **3D ocean map**. It ranks
 recovery, routes them through on-deck segregation and recycler handover, and tracks a
 **seabed cleanliness index** for every harbour it surveys.
 
-This repository contains the product pitch site for our SIH 2026 submission — a single-page
-walkthrough of the problem, solution, architecture, feasibility and research behind JalNiriksh AI.
+This repository contains the **operator console** — the frontend our port/fisheries operators
+would actually use day-to-day: upload a sonar scan, review the AI's uncertain detections,
+see everything plotted on the seabed map, plan recovery routes, and track the cleanliness
+index over time. It runs on a bundled sample survey dataset so the full workflow can be
+explored without a live sonar feed or backend — see [Demo Data](#demo-data).
 
 ## Table of Contents
 
 - [Problem Statement](#problem-statement)
-- [Our Solution](#our-solution)
+- [Product Walkthrough](#product-walkthrough)
+- [Demo Data](#demo-data)
 - [User Flow](#user-flow)
 - [Technical Approach](#technical-approach)
 - [Tech Stack](#tech-stack)
@@ -56,12 +60,20 @@ walkthrough of the problem, solution, architecture, feasibility and research beh
 | **Team ID** | 160976 |
 | **Team Name** | Gadbad Ghotala |
 
-## Our Solution
+## Product Walkthrough
 
-An AI-powered platform that locates underwater waste such as ghost nets, plastic, tyres,
-drums and more. It combines side-scan sonar analysis with a 3D ocean map to rank items for
-recovery, then routes them through on-deck segregation and recycler handover, with a seabed
-cleanliness index to track each harbour.
+The console is a single-page app with six views, reachable from the sidebar:
+
+| View | What it's for |
+|---|---|
+| 📊 **Overview** | Live KPI tiles (items detected, pending review, cleanliness index, active recovery routes), a detections-by-type chart, the cleanliness trend, and a recent-detections table. |
+| ⇪ **Sonar Scans** | Drag-and-drop (or click-to-browse) scan intake. Dropping a file simulates ingestion/tiling with a progress bar and lands it in the scans table. |
+| ◎ **Review Queue** | Every detection the AI scored 40–80% confidence, shown as a card with its type guess, depth and hazard. Confirm/Reject updates the dataset live and feeds the retraining loop. |
+| ⬢ **Ocean Map** | Seabed plot of every item with a type-coded marker and accuracy-circle ring, a legend with live counts, per-type filter chips, and a click-through detail panel. |
+| ↝ **Recovery Planner** | Confirmed items ranked by hazard score, each auto-assigned a Diver (shallow) or ROV (deep) method, with a "mark collected" action that updates the cleanliness index. |
+| ▤ **Reports** | Full cleanliness-index history, plus one-click CSV and GeoJSON export of the confirmed detections. |
+
+Underneath, the product is designed around these capabilities:
 
 | Capability | What it does |
 |---|---|
@@ -71,6 +83,15 @@ cleanliness index to track each harbour.
 | 🌐 **3D Ocean Map** | Shows items on the seabed alongside currents, depth and survey coverage, so gaps and waste hotspots are visible. |
 | ♻️ **Recovery &amp; Segregation** | Ranks items by hazard, plans recovery routes, and sorts recovered waste on deck for recyclers. |
 | 🔗 **Fits Existing Workflows** | Reads standard sonar files and exports KML, NMEA and CSV for survey and navigation tools. |
+
+## Demo Data
+
+This console ships with a hardcoded sample survey (`assets/js/main.js`) — 14 mock detections
+across a Visakhapatnam Port survey — so every view and interaction (confirm/reject, upload
+simulation, map filtering, CSV/GeoJSON export) works immediately with no backend. Swapping in
+real data means pointing the same views at the sonar-ingestion and detection API described in
+[Technical Approach](#technical-approach), which isn't built yet — the console is the UI/UX
+layer of that pipeline, built first so the workflow can be tested and judged end-to-end.
 
 ## User Flow
 
@@ -130,9 +151,10 @@ waste is sorted on deck for recyclers and retrains the model.
 `OpenCV` · `XARRAY` · `NumPy` · `PostgreSQL` · `CesiumJS` · `Google OR-Tools` ·
 `HTML` · `CSS` · `Git/GitHub`
 
-> This repository currently implements the **pitch/landing site** (`HTML`, `CSS`, `JavaScript`)
-> above. The remaining stack reflects the architecture designed for the full JalNiriksh AI
-> platform, detailed in [Technical Approach](#technical-approach).
+> This repository currently implements the **operator console frontend** (`HTML`, `CSS`,
+> `JavaScript`, no build step) running on the sample dataset described in
+> [Demo Data](#demo-data). The remaining stack reflects the architecture designed for the
+> full JalNiriksh AI platform, detailed in [Technical Approach](#technical-approach).
 
 ## Feasibility &amp; Viability
 
@@ -231,12 +253,12 @@ npx serve .
 
 ```
 .
-├── index.html              # Single-page site (hero, solution, flow, tech, feasibility, impact, research)
+├── index.html              # App shell: sidebar nav, topbar, six routed views
 ├── assets/
 │   ├── css/
-│   │   └── style.css       # Design system: layout, cards, donut chart, responsive rules
+│   │   └── style.css       # Dashboard design system: sidebar, panels, charts, map, review cards
 │   └── js/
-│       └── main.js         # Mobile nav toggle + scroll-reveal animation
+│       └── main.js         # Hash router, mock survey dataset, SVG charts, map + review interactivity, CSV/GeoJSON export
 ├── LICENSE
 └── README.md
 ```
