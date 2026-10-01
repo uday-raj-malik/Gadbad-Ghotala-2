@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>JalNiriksh AI — Underwater Waste Detection &amp; Recovery Platform</title>
+<meta name="description" content="JalNiriksh AI is an AI-powered platform that locates underwater waste using side-scan sonar, ranks it for recovery on a 3D ocean map, and routes it through on-deck segregation — built by Team Gadbad Ghotala for Smart India Hackathon 2026." />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%8C%8A%3C/text%3E%3C/svg%3E" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="assets/css/style.css" />
+</head>
+<body>
+
+<a class="skip-link" href="#main">Skip to content</a>
+
+<header class="site-header" id="top">
+  <div class="container header-inner">
+    <a class="brand" href="#top">
+      <span class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 48 48" width="34" height="34">
+          <path d="M4 32c4-4 8-4 12 0s8 4 12 0 8-4 12 0 8 4 12 0" fill="none" stroke="url(#wave)" stroke-width="3.2" stroke-linecap="round"/>
+          <path d="M4 24c4-4 8-4 12 0s8 4 12 0 8-4 12 0 8 4 12 0" fill="none" stroke="url(#wave)" stroke-width="3.2" stroke-linecap="round" opacity=".55"/>
+          <defs>
+            <linearGradient id="wave" x1="0" y1="0" x2="48" y2="0">
+              <stop offset="0" stop-color="#1baf7a"/>
+              <stop offset="1" stop-color="#2a78d6"/>
+            </linearGradient>
+          </defs>
+        </svg>
+      </span>
+      <span class="brand-text">
+        <strong>JalNiriksh AI</strong>
+        <small>Team Gadbad Ghotala</small>
+      </span>
+    </a>
+
+    <nav class="main-nav" id="main-nav" aria-label="Primary">
+      <a href="#solution">Solution</a>
+      <a href="#how-it-works">How It Works</a>
+      <a href="#tech-stack">Tech Stack</a>
+      <a href="#feasibility">Feasibility</a>
+      <a href="#impact">Impact</a>
+      <a href="#research">Research</a>
+      <a href="https://github.com/uday-raj-malik/Gadbad-Ghotala-2" class="btn btn-ghost" target="_blank" rel="noopener">GitHub</a>
+    </nav>
+
+    <button class="nav-toggle" id="navToggle" aria-expanded="false" aria-controls="main-nav" aria-label="Toggle navigation menu">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</header>
+
+<main id="main">
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="hero-bg" aria-hidden="true"></div>
+    <div class="container hero-inner">
+      <div class="badge-row">
+        <span class="chip">Smart India Hackathon 2026</span>
+        <span class="chip chip-muted">PS ID: SIH26195</span>
+        <span class="chip chip-muted">Theme: Smart Automation</span>
+      </div>
+      <h1>Finding what surface clean-ups miss — <span class="accent">beneath the waves.</span></h1>
+      <p class="hero-lead">
+        JalNiriksh AI is an AI-powered platform that locates underwater waste — ghost nets, plastic,
+        tyres, drums and more — by combining side-scan sonar analysis with a live 3D ocean map. It ranks
+        items for recovery, routes them through on-deck segregation and recycler handover, and tracks a
+        seabed cleanliness index for every harbour it surveys.
+      </p>
+      <div class="hero-actions">
+        <a href="#solution" class="btn btn-primary">Explore the Solution</a>
+        <a href="#how-it-works" class="btn btn-outline">See How It Works</a>
+      </div>
+      <dl class="hero-meta">
+        <div><dt>Problem Statement</dt><dd>SIH26195 — Student Innovation</dd></div>
+        <div><dt>Category</dt><dd>Software</dd></div>
+        <div><dt>Team ID</dt><dd>160976</dd></div>
+        <div><dt>Team</dt><dd>Gadbad Ghotala</dd></div>
+      </dl>
+    </div>
+  </section>
+
+  <!-- PROBLEM STATEMENT -->
+  <section class="section" id="problem">
+    <div class="container">
+      <p class="eyebrow">The Problem</p>
+      <h2>Surface clean-ups can't see the seabed</h2>
+      <p class="section-lead">
+        Waste segregation, disposal and sanitation efforts routinely stop at the waterline. Ghost nets,
+        plastic, tyres and drums accumulate unseen on harbour floors and riverbeds — degrading marine
+        ecosystems, entangling wildlife, and quietly re-entering the food chain. There is no systematic,
+        low-cost way for port authorities and fisheries departments to find, prioritise and recover this
+        hidden waste at scale.
+      </p>
+    </div>
+  </section>
+
+  <!-- SOLUTION -->
+  <section class="section section-alt" id="solution">
+    <div class="container">
+      <p class="eyebrow">Our Solution</p>
+      <h2>One pipeline — from sonar ping to recycler handover</h2>
+      <p class="section-lead">
+        JalNiriksh AI combines side-scan sonar analysis with a 3D ocean map to rank underwater items for
+        recovery, then routes them through on-deck segregation and recycler handover — with a seabed
+        cleanliness index to track every harbour over time.
+      </p>
+
+      <div class="card-grid">
+        <article class="feature-card">
+          <div class="feature-icon">📡</div>
+          <h3>Sonar Waste Detection</h3>
+          <p>Uses AI plus anomaly and non-AI checks to find man-made debris in side-scan sonar images.</p>
+        </article>
+        <article class="feature-card">
+          <div class="feature-icon">🛡️</div>
+          <h3>False-Alarm Filtering</h3>
+          <p>Separates debris from rocks, sand ripples and shadows, with a calibrated confidence score and human review of uncertain items.</p>
+        </article>
+        <article class="feature-card">
+          <div class="feature-icon">📍</div>
+          <h3>Location with Accuracy Circle</h3>
+          <p>Places each item on the map at its real depth, with an error circle so crews know how wide to search.</p>
+        </article>
+        <article class="feature-card">
+          <div class="feature-icon">🌐</div>
+          <h3>3D Ocean Map</h3>
+          <p>Shows items on the seabed alongside currents, depth and survey coverage, so gaps and waste hotspots are visible.</p>
+        </article>
+        <article class="feature-card">
+          <div class="feature-icon">♻️</div>
+          <h3>Recovery &amp; Segregation</h3>
+          <p>Ranks items by hazard, plans recovery routes, and sorts recovered waste on deck for recyclers.</p>
+        </article>
+        <article class="feature-card">
+          <div class="feature-icon">🔗</div>
+          <h3>Fits Existing Workflows</h3>
+          <p>Designed to read standard sonar files and export KML, NMEA and CSV for survey and navigation tools.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- USER FLOW / HOW IT WORKS -->
+  <section class="section" id="how-it-works">
+    <div class="container">
+      <p class="eyebrow">How It Works</p>
+      <h2>User flow — from boat scan to dispatch report</h2>
+      <p class="section-lead">A boat scans the harbour floor with sonar. Seven steps turn that raw scan into a prioritised, trackable recovery operation.</p>
+
+      <ol class="flow-steps">
+        <li><span class="flow-num">1</span><div><h3>Upload the scan</h3><p>Upload the sonar file, or let the boat send it automatically.</p></div></li>
+        <li><span class="flow-num">2</span><div><h3>AI checks the images</h3><p>Cleans up the grainy sonar picture, spots things that look like waste (nets, plastic, tyres, drums), ignores rocks, sand ripples and shadows, and gives each item a confidence score and GPS spot on the map.</p></div></li>
+        <li><span class="flow-num">3</span><div><h3>A person double-checks</h3><p>Items the AI was unsure about (40–80% confidence) get a close-up photo for an analyst to confirm or reject. The observation is saved to retrain the model.</p></div></li>
+        <li><span class="flow-num">4</span><div><h3>See it on the 3D map</h3><p>Each confirmed item sits on the seabed at its real depth, with an accuracy circle, shaded survey-coverage strips, and a priority based on potential economic and ecological harm.</p></div></li>
+        <li><span class="flow-num">5</span><div><h3>Plan and go collect</h3><p>The app plans the shortest boat route and sends GPS points to the boat. Divers go for shallow items; an underwater robot handles deep ones.</p></div></li>
+        <li><span class="flow-num">6</span><div><h3>Sort and dispose</h3><p>Waste collected is sorted and disposed of safely for hand-off to recyclers.</p></div></li>
+        <li><span class="flow-num">7</span><div><h3>Report</h3><p>The port sees how clean each area is and where to scan next, then the cycle starts again from step one.</p></div></li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- TECHNICAL APPROACH -->
+  <section class="section section-alt" id="tech-stack">
+    <div class="container">
+      <p class="eyebrow">Technical Approach</p>
+      <h2>Under the hood</h2>
+
+      <div class="approach-grid">
+        <div class="approach-item">
+          <h3>1 · Sonar Ingestion &amp; Clean-up</h3>
+          <p>Reads side-scan sonar files (XTF/JSF) with their GPS data. Corrects image geometry, evens out brightness, reduces grainy noise, then tiles the scan for analysis.</p>
+        </div>
+        <div class="approach-item">
+          <h3>2 · Detection &amp; Triage</h3>
+          <p>YOLO segmentation, an anomaly check and a shadow baseline are combined. False positives are filtered, each item gets a calibrated score, and uncertain items go to human review.</p>
+        </div>
+        <div class="approach-item">
+          <h3>3 · Location &amp; 3D Map</h3>
+          <p>Items get a GPS position, depth and an error circle, with duplicates merged, shown on a CesiumJS map alongside currents, coverage and depth.</p>
+        </div>
+        <div class="approach-item">
+          <h3>4 · Recovery &amp; Segregation</h3>
+          <p>Items are ranked by hazard and routed with OR-Tools. Recovered waste is sorted on deck for recyclers, and every outcome retrains the model.</p>
+        </div>
+      </div>
+
+      <h3 class="subhead">Tech Stack</h3>
+      <ul class="stack-badges">
+        <li>Python</li><li>PyTorch</li><li>Ultralytics YOLO</li><li>Keras</li><li>Scikit-Learn</li>
+        <li>Mamba Model</li><li>OpenCV</li><li>XARRAY</li><li>NumPy</li><li>PostgreSQL</li>
+        <li>CesiumJS</li><li>Google OR-Tools</li><li>HTML</li><li>CSS</li><li>Git / GitHub</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- FEASIBILITY -->
+  <section class="section" id="feasibility">
+    <div class="container">
+      <p class="eyebrow">Feasibility &amp; Viability</p>
+      <h2>Built on a proven, low-cost stack</h2>
+
+      <div class="triple-grid">
+        <div class="info-card">
+          <h3>Technical Feasibility</h3>
+          <ul>
+            <li>Proven open-source stack: YOLO segmentation for sonar, xarray + ERDDAP for ocean data, CesiumJS for the 3D map — all mature and free.</li>
+            <li>Standard data, real sources: reads XTF/JSF sonar and NetCDF ocean files; trained on public sonar data and synthetic ghost nets, tested on real scans.</li>
+          </ul>
+        </div>
+        <div class="info-card">
+          <h3>Economic Feasibility</h3>
+          <ul>
+            <li>Government &amp; B2B model: annual licences for port authorities, state fisheries departments and pollution control boards, at an estimated ₹13–20L per deployment.</li>
+            <li>Low running cost: reuses sonar surveys ports already run; works offline on a single GPU laptop on the survey boat.</li>
+          </ul>
+        </div>
+        <div class="info-card">
+          <h3>Solution Viability</h3>
+          <ul>
+            <li>Modular architecture: detection, 3D map, prioritisation and recovery planning can each be deployed on their own.</li>
+            <li>Improves with use: analyst checks and what crews actually recover become new training labels for the AI.</li>
+            <li>Coasts and rivers: the same pipeline adapts to survey rivers like the Ganga, not just harbours.</li>
+          </ul>
+        </div>
+      </div>
+
+      <h3 class="subhead">Potential Risks &amp; Solutions</h3>
+      <div class="risk-grid">
+        <div class="risk-card">
+          <h4>⚡ Noisy sonar images</h4>
+          <p>Sonar clean-up, a false-positive filter, and human review of uncertain detections.</p>
+        </div>
+        <div class="risk-card">
+          <h4>🕸️ Little ghost-net training data</h4>
+          <p>Public sonar datasets plus synthetic nets, with field-verified labels added over time.</p>
+        </div>
+        <div class="risk-card">
+          <h4>📡 Sonar can't identify material</h4>
+          <p>Sonar gives a likely category; the material is confirmed and weighed on deck before disposal.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- IMPACT -->
+  <section class="section section-alt" id="impact">
+    <div class="container">
+      <p class="eyebrow">Impact &amp; Benefits</p>
+      <h2>Why this matters</h2>
+
+      <div class="impact-grid">
+        <ul class="impact-list">
+          <li><strong>Hidden waste:</strong> the Ganges carries an estimated ~120,000 tonnes of plastic to the sea every year.</li>
+          <li><strong>Livelihoods at stake:</strong> India's fishing sector supports an estimated 14.5 million livelihoods.</li>
+          <li><strong>Recycling route exists:</strong> India's 2022 waste-tyre EPR rules give recovered tyres a regulated recycling route.</li>
+          <li><strong>Segregation by design:</strong> recovered items are sorted and weighed on deck by material, then handed to recyclers with a manifest.</li>
+          <li><strong>Measurable sanitation:</strong> our proposed index tracks harbour cleanliness as confirmed items per km² surveyed.</li>
+        </ul>
+
+        <div class="chart-card">
+          <h3>Share of Ganga Plastic Waste by State</h3>
+          <div class="donut-wrap">
+            <div class="donut" style="--p1:50.2%; --p2:85.4%; --p3:97.3%;" role="img" aria-label="Donut chart: West Bengal 50.2%, Uttar Pradesh 35.2%, Bihar 11.9%, Uttarakhand 2.4%">
+              <div class="donut-hole"><span>100%</span><small>of total</small></div>
+            </div>
+            <table class="donut-legend">
+              <caption class="sr-only">Share of Ganga plastic waste by state</caption>
+              <thead><tr><th scope="col"></th><th scope="col">State</th><th scope="col">Share</th></tr></thead>
+              <tbody>
+                <tr><td><span class="swatch swatch-1" aria-hidden="true"></span></td><td>West Bengal</td><td>50.2%</td></tr>
+                <tr><td><span class="swatch swatch-2" aria-hidden="true"></span></td><td>Uttar Pradesh</td><td>35.2%</td></tr>
+                <tr><td><span class="swatch swatch-3" aria-hidden="true"></span></td><td>Bihar</td><td>11.9%</td></tr>
+                <tr><td><span class="swatch swatch-4" aria-hidden="true"></span></td><td>Uttarakhand</td><td>2.4%</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <h3 class="subhead">Why Choose Us</h3>
+      <div class="why-grid">
+        <div class="why-card"><span class="why-num">1</span><p>Finds what surface clean-ups miss</p></div>
+        <div class="why-card"><span class="why-num">2</span><p>Detection to disposal, end to end</p></div>
+        <div class="why-card"><span class="why-num">3</span><p>Checked, transparent AI</p></div>
+        <div class="why-card"><span class="why-num">4</span><p>Low-cost deployment</p></div>
+      </div>
+
+      <h3 class="subhead">Market &amp; Costing</h3>
+      <div class="market-grid">
+        <div class="market-card">
+          <strong>₹41 Cr</strong>
+          <span>TAM</span>
+          <p>Indian seabed waste monitoring: ~210 ports, 13 coastal states/UTs and central agencies.</p>
+        </div>
+        <div class="market-card">
+          <strong>₹13 Cr</strong>
+          <span>SAM</span>
+          <p>Major ports, ~40 surveyed non-major ports, and state fisheries and pollution boards.</p>
+        </div>
+        <div class="market-card">
+          <strong>₹1.5 Cr</strong>
+          <span>SOM</span>
+          <p>What we aim to win in the first 3 years: 6 ports and 3 state agencies.</p>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <table class="cost-table">
+          <thead>
+            <tr><th>Cost Component (Annual)</th><th>Cost</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Platform Licence &amp; Maintenance</td><td>₹6L – ₹8L</td></tr>
+            <tr><td>Cloud / Edge Compute &amp; Storage</td><td>₹3L – ₹5L</td></tr>
+            <tr><td>Integration, Training &amp; Support</td><td>₹3L – ₹5L</td></tr>
+            <tr><td>Edge Hardware (GPU laptop on survey boat)</td><td>₹1L – ₹2L</td></tr>
+            <tr class="total-row"><td>Total Product Cost</td><td>₹13L – ₹20L</td></tr>
+            <tr class="total-row"><td>Total Annual Value</td><td>₹20L – ₹37L</td></tr>
+            <tr class="hero-row"><td>ROI (Modelled)</td><td>~70% mid-case (0% – 185%)</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- RESEARCH -->
+  <section class="section" id="research">
+    <div class="container">
+      <p class="eyebrow">Research &amp; References</p>
+      <h2>Grounded in published marine-litter research</h2>
+
+      <div class="research-grid">
+        <ul class="research-list">
+          <li><p>Established deep-learning-based marine-litter detection and studied suitability for real-time AUV applications.</p><a href="https://arxiv.org/abs/1804.01079" target="_blank" rel="noopener">arxiv.org/abs/1804.01079</a></li>
+          <li><p>Introduced a large underwater debris dataset with detection and segmentation annotations for marine-waste recognition.</p><a href="https://arxiv.org/abs/2007.08097" target="_blank" rel="noopener">arxiv.org/abs/2007.08097</a></li>
+          <li><p>Demonstrated pixel-level waste localization via instance segmentation, with lightweight models like YOLACT offering much faster inference.</p><a href="https://www.mdpi.com/2077-1312/11/8/1532" target="_blank" rel="noopener">mdpi.com/2077-1312/11/8/1532</a></li>
+          <li><p>Uses SAM + iCLIP for zero-shot underwater litter segmentation, achieving 69.9% mIoU across eight waste categories.</p><a href="https://minhdl93.github.io/public/papers/env24.pdf" target="_blank" rel="noopener">minhdl93.github.io/.../env24.pdf</a></li>
+          <li><p>AQUABENCH — 7,212 and 8,610-image underwater-debris datasets with detection + instance-segmentation annotations.</p><a href="https://huggingface.co/datasets/TorbenGl/AQUABENCH" target="_blank" rel="noopener">huggingface.co/datasets/TorbenGl/AQUABENCH</a></li>
+        </ul>
+
+        <div class="table-wrap">
+          <table class="bench-table">
+            <caption>Benchmarking of baselines</caption>
+            <thead>
+              <tr><th>System</th><th>mAP@0.5 (%)</th><th>mIoU (%)</th><th>FPS</th><th>Params (M)</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>2018 Faster R-CNN</td><td>46.3</td><td>–</td><td>5.2</td><td>41.5</td></tr>
+              <tr><td>2020 Mask R-CNN</td><td>52.8</td><td>61.7</td><td>6.8</td><td>44.7</td></tr>
+              <tr><td>2022 YOLACT</td><td>56.4</td><td>64.1</td><td>24.3</td><td>37.8</td></tr>
+              <tr><td>2024 SAM+iCLIP</td><td>–</td><td>69.9*</td><td>3.1</td><td>93.1</td></tr>
+              <tr class="total-row"><td>Ours (YOLO-seg)</td><td>68.7</td><td>66.3</td><td>62.1</td><td>27.4</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="site-footer">
+  <div class="container footer-inner">
+    <div>
+      <strong>JalNiriksh AI</strong>
+      <p>Built by Team Gadbad Ghotala for Smart India Hackathon 2026 · PS ID SIH26195</p>
+    </div>
+    <div class="footer-links">
+      <a href="https://github.com/uday-raj-malik/Gadbad-Ghotala-2" target="_blank" rel="noopener">GitHub</a>
+      <a href="#top">Back to top</a>
+    </div>
+  </div>
+</footer>
+
+<script src="assets/js/main.js"></script>
+</body>
+</html>

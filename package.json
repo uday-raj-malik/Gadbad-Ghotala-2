@@ -1,0 +1,22 @@
+{
+  "name": "jalniriksh-ai",
+  "version": "1.0.0",
+  "description": "JalNiriksh AI — AI-powered underwater waste detection and recovery platform. Built by Team Gadbad Ghotala for Smart India Hackathon 2026 (PS ID SIH26195).",
+  "private": true,
+  "scripts": {
+    "start": "npx serve ."
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/uday-raj-malik/Gadbad-Ghotala-2.git"
+  },
+  "keywords": [
+    "sih2026",
+    "underwater-waste-detection",
+    "sonar",
+    "marine-litter",
+    "computer-vision"
+  ],
+  "author": "Team Gadbad Ghotala",
+  "license": "MIT"
+}
