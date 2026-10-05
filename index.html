@@ -136,14 +136,39 @@
       <section class="view" id="view-scans">
         <div class="view-head">
           <h1>Sonar Scans</h1>
-          <p>Upload side-scan sonar files (XTF/JSF) or let the boat send them automatically.</p>
+          <p>Upload a sonar waterfall image, or try one of the bundled samples, to run the real detection model.</p>
         </div>
 
         <div class="dropzone" id="dropzone">
-          <input type="file" id="fileInput" class="sr-only" accept=".xtf,.jsf" />
+          <input type="file" id="fileInput" class="sr-only" accept=".jpg,.jpeg,.png,.tif,.tiff" />
           <div class="dropzone-icon">⇪</div>
-          <p><strong>Drag a sonar file here</strong>, or click to browse</p>
-          <p class="muted-text">Accepts .XTF / .JSF — demo mode simulates ingestion &amp; tiling.</p>
+          <p><strong>Drag a sonar image here</strong>, or click to browse</p>
+          <p class="muted-text">Accepts JPG/PNG/TIFF. Runs on the real YOLO-ESI model when the
+            Live Analysis API (<code>backend/</code>) is running at <code>localhost:8000</code> —
+            otherwise falls back to simulated ingestion.</p>
+        </div>
+
+        <div class="live-status" id="liveStatus">
+          <span class="dot" id="liveDot"></span>
+          <span id="liveStatusText">Checking Live Analysis API…</span>
+          <div class="sample-row" id="sampleRow"></div>
+        </div>
+
+        <div class="panel" id="liveResultPanel" hidden>
+          <div class="panel-head">
+            <h2>Live Analysis Result</h2>
+            <span class="badge badge-good" id="liveResultMeta"></span>
+          </div>
+          <div class="live-result-grid">
+            <img id="liveResultImg" alt="Annotated sonar scan" />
+            <div class="table-wrap">
+              <table class="data-table" id="liveResultTable">
+                <thead><tr><th>Class</th><th>Confidence</th><th>Material</th><th>Threat Score</th><th>Est. Height</th></tr></thead>
+                <tbody></tbody>
+              </table>
+              <p class="empty-state" id="liveResultEmpty" hidden>No debris signature detected in this image.</p>
+            </div>
+          </div>
         </div>
 
         <div class="panel">

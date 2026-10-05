@@ -38,6 +38,7 @@ explored without a live sonar feed or backend — see [Demo Data](#demo-data).
 - [Problem Statement](#problem-statement)
 - [Product Walkthrough](#product-walkthrough)
 - [Demo Data](#demo-data)
+- [Live Analysis (Real Model)](#live-analysis-real-model)
 - [User Flow](#user-flow)
 - [Technical Approach](#technical-approach)
 - [Tech Stack](#tech-stack)
@@ -67,7 +68,7 @@ The console is a single-page app with six views, reachable from the sidebar:
 | View | What it's for |
 |---|---|
 | 📊 **Overview** | Live KPI tiles (items detected, pending review, cleanliness index, active recovery routes), a detections-by-type chart, the cleanliness trend, and a recent-detections table. |
-| ⇪ **Sonar Scans** | Drag-and-drop (or click-to-browse) scan intake. Dropping a file simulates ingestion/tiling with a progress bar and lands it in the scans table. |
+| ⇪ **Sonar Scans** | Drag-and-drop (or click-to-browse) scan intake, plus one-click sample buttons. Runs the real model via the [Live Analysis](#live-analysis-real-model) API when it's running; falls back to simulated ingestion otherwise. |
 | ◎ **Review Queue** | Every detection the AI scored 40–80% confidence, shown as a card with its type guess, depth and hazard. Confirm/Reject updates the dataset live and feeds the retraining loop. |
 | ⬢ **Ocean Map** | Seabed plot of every item with a type-coded marker and accuracy-circle ring, a legend with live counts, per-type filter chips, and a click-through detail panel. |
 | ↝ **Recovery Planner** | Confirmed items ranked by hazard score, each auto-assigned a Diver (shallow) or ROV (deep) method, with a "mark collected" action that updates the cleanliness index. |
@@ -86,12 +87,58 @@ Underneath, the product is designed around these capabilities:
 
 ## Demo Data
 
-This console ships with a hardcoded sample survey (`assets/js/main.js`) — 14 mock detections
-across a Visakhapatnam Port survey — so every view and interaction (confirm/reject, upload
-simulation, map filtering, CSV/GeoJSON export) works immediately with no backend. Swapping in
-real data means pointing the same views at the sonar-ingestion and detection API described in
-[Technical Approach](#technical-approach), which isn't built yet — the console is the UI/UX
-layer of that pipeline, built first so the workflow can be tested and judged end-to-end.
+The Overview, Review Queue, Ocean Map, Recovery Planner and Reports views run on a hardcoded
+sample survey (`assets/js/main.js`) — 14 detections across a Visakhapatnam Port survey — so the
+full operator workflow (confirm/reject, map filtering, hazard ranking, CSV/GeoJSON export)
+works immediately with no backend. This is clearly labelled in the UI (the "Demo data" pill).
+
+The **Sonar Scans** view is different: it runs **real inference** against **real detection
+code**, described next.
+
+## Live Analysis (Real Model)
+
+`backend/` is a working FastAPI service that runs actual AI inference — not a mock. It reuses
+the detection engine our team built and trained during the KADAL (SIH26057) R&D phase:
+
+- **Model**: YOLOv8-Nano + Squeeze-and-Excitation attention ("YOLO-ESI"), 3.03M parameters,
+  ONNX FP16, test mAP50 ≈ 0.60. Trained on a multi-source side-scan sonar dataset (NOAA debris
+  surveys + synthetic/augmented targets). Weights are hosted on Hugging Face
+  ([`Dinoman1221/sonarvision-yolov8-esi-v6`](https://huggingface.co/Dinoman1221/sonarvision-yolov8-esi-v6))
+  and downloaded on setup — they are not committed to this repo.
+- **Pipeline**: letterboxed tiling → ONNX inference → Soft-NMS → acoustic-physics
+  post-processing (`backend/inference/acoustic_physics.py`): peak-backscatter material
+  classification (metallic vs. synthetic), shadow-based height mensuration, and a 0–100 threat
+  score — then the result is drawn onto an annotated image and returned as JSON.
+- **Honest scope note on classes**: the model's trained classes are acoustic-signature
+  categories (`unknown_debris`, `wreck`, `mine`, `airplane`), not fine-grained waste materials.
+  `backend/app.py` maps these to operator-facing labels (e.g. `mine` → "High-Hazard Object") and
+  the acoustic material classifier ("Hard/Metallic" vs. "Soft/Synthetic") is what distinguishes
+  metal drums from plastics/nets — it is **not** yet fine-tuned on a marine-litter-specific
+  dataset with per-class plastic/net/tyre labels. That fine-tuning is the next real step, not
+  done in this pass.
+
+### Running it
+
+```bash
+cd Gadbad-Ghotala-2
+python -m venv .venv && source .venv/Scripts/activate   # or .venv\Scripts\activate on Windows
+pip install -r backend/requirements.txt
+python -m backend.download_model      # fetches the real ONNX weights (~5.9 MB)
+python -m uvicorn backend.app:app --reload --port 8000
+```
+
+With the API running, open the console and go to **Sonar Scans**: the status pill turns green
+("Live Analysis API connected"), four bundled sample sonar images appear as one-click buttons,
+and dropping your own JPG/PNG/TIFF runs the same real pipeline. Without the API running, the
+same view falls back to simulated ingestion so the console still demos standalone.
+
+| Endpoint | What it does |
+|---|---|
+| `GET /api/health` | Reports whether the real model loaded or the service is in simulation mode. |
+| `GET /api/model/info` | Model architecture, input size, active ONNX execution provider, weights checksum. |
+| `GET /api/samples` | Lists the bundled sample sonar images. |
+| `POST /api/analyze` | Multipart image upload → real detections + annotated image. |
+| `POST /api/analyze-sample/{name}` | Runs the same pipeline on a bundled sample. |
 
 ## User Flow
 
@@ -151,10 +198,13 @@ waste is sorted on deck for recyclers and retrains the model.
 `OpenCV` · `XARRAY` · `NumPy` · `PostgreSQL` · `CesiumJS` · `Google OR-Tools` ·
 `HTML` · `CSS` · `Git/GitHub`
 
-> This repository currently implements the **operator console frontend** (`HTML`, `CSS`,
-> `JavaScript`, no build step) running on the sample dataset described in
-> [Demo Data](#demo-data). The remaining stack reflects the architecture designed for the
-> full JalNiriksh AI platform, detailed in [Technical Approach](#technical-approach).
+> This repository implements the **operator console frontend** (`HTML`, `CSS`, `JavaScript`,
+> no build step) plus a **real `Python` / `FastAPI` / `ONNX Runtime` / `OpenCV` backend**
+> (`backend/`) that runs actual trained-model inference — see
+> [Live Analysis](#live-analysis-real-model). `PyTorch`, `Ultralytics YOLO`, `CesiumJS`,
+> `PostgreSQL` and `Google OR-Tools` reflect the architecture designed for the full platform
+> (segmentation training, 3D geospatial map, route optimisation, persistence) and aren't wired
+> up yet — see [Technical Approach](#technical-approach) for the target design.
 
 ## Feasibility &amp; Viability
 
@@ -233,7 +283,14 @@ just harbours.
 | 2020 Mask R-CNN | 52.8 | 61.7 | 6.8 | 44.7 |
 | 2022 YOLACT | 56.4 | 64.1 | 24.3 | 37.8 |
 | 2024 SAM+iCLIP | – | 69.9* | 3.1 | 93.1 |
-| **Ours (YOLO-seg)** | **68.7** | **66.3** | **62.1** | **27.4** |
+| **Ours (YOLO-seg, target)** | **68.7** | **66.3** | **62.1** | **27.4** |
+
+> The row above was this pitch's target benchmark against literature baselines. The model
+> actually wired into [Live Analysis](#live-analysis-real-model) today is the team's real,
+> currently-trained checkpoint — YOLOv8-ESI (box detection, not segmentation), **test
+> mAP50 ≈ 0.60**, 3.03M params — reused from the KADAL project rather than retrained from
+> scratch for this submission. Closing that gap (and moving from box detection to
+> segmentation) is the next real training milestone.
 
 ## Getting Started
 
@@ -244,10 +301,13 @@ This is a static site with no build step.
 git clone https://github.com/uday-raj-malik/Gadbad-Ghotala-2.git
 cd Gadbad-Ghotala-2
 
-# serve it locally (any static server works)
+# serve the frontend locally (any static server works)
 npx serve .
 # or simply open index.html in a browser
 ```
+
+For the real model instead of the bundled demo dataset, also start the backend — see
+[Live Analysis](#live-analysis-real-model).
 
 ## Project Structure
 
@@ -259,6 +319,14 @@ npx serve .
 │   │   └── style.css       # Dashboard design system: sidebar, panels, charts, map, review cards
 │   └── js/
 │       └── main.js         # Hash router, mock survey dataset, SVG charts, map + review interactivity, CSV/GeoJSON export
+├── backend/                # Real FastAPI inference service (see Live Analysis)
+│   ├── app.py               # Endpoints: health, model/info, samples, analyze, analyze-sample
+│   ├── config.py             # Model path discovery, class map, thresholds
+│   ├── download_model.py     # Fetches the real ONNX weights from Hugging Face
+│   ├── inference/            # ONNX engine, pre/post-processing, acoustic physics
+│   ├── utils/annotator.py    # Draws detection overlays on the returned image
+│   ├── static/samples/       # Bundled real sonar images for one-click demo
+│   └── requirements.txt
 ├── LICENSE
 └── README.md
 ```

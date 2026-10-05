@@ -49,6 +49,114 @@
   var selectedPinId = null;
 
   /* ---------------------------------------------------------------- */
+  /* Live Analysis API — real backend, real model (optional)          */
+  /* ---------------------------------------------------------------- */
+
+  var API_BASE = window.JALNIRIKSH_API_BASE || "http://localhost:8000";
+  var backendOnline = false;
+
+  function materialBadge(mat) {
+    if (!mat) return "—";
+    if (/Hard|Metal/i.test(mat)) return '<span class="badge badge-warn">Metallic</span>';
+    if (/Soft|Synthetic|Plastic/i.test(mat)) return '<span class="badge badge-good">Synthetic</span>';
+    return '<span class="badge badge-muted">Unclassified</span>';
+  }
+
+  function renderLiveResult(data) {
+    var panel = $("#liveResultPanel");
+    panel.hidden = false;
+    $("#liveResultMeta").textContent = data.is_demo_mode
+      ? "Model: simulation mode"
+      : "Model: " + data.model.model_name + " · " + data.timing_ms.inference_time_ms + "ms";
+    $("#liveResultImg").src = data.annotated_image;
+
+    var tbody = $("#liveResultTable tbody");
+    tbody.innerHTML = "";
+    $("#liveResultEmpty").hidden = data.detections.length > 0;
+
+    data.detections.forEach(function (d) {
+      tbody.appendChild(el("tr", {}, [
+        el("td", { text: d.display_label || d.class_name }),
+        el("td", { html: '<span class="badge ' + (d.confidence >= 0.8 ? "badge-good" : "badge-warn") + '">' + Math.round(d.confidence * 100) + "%</span>" }),
+        el("td", { html: materialBadge(d.material_density) }),
+        el("td", { text: (d.threat_score != null ? d.threat_score : "—") + (d.threat_score != null ? " / 100" : "") }),
+        el("td", { text: d.estimated_height_meters ? d.estimated_height_meters.toFixed(2) + " m" : "—" })
+      ]));
+    });
+  }
+
+  function analyzeBlob(blob, filename) {
+    var form = new FormData();
+    form.append("file", blob, filename || "scan.png");
+    var row = { file: filename || "live_scan.png", date: "Just now", tiles: 1, detections: 0, status: "Processing" };
+    scans.unshift(row);
+    renderScans();
+
+    return fetch(API_BASE + "/api/analyze", { method: "POST", body: form })
+      .then(function (r) { if (!r.ok) throw new Error("API " + r.status); return r.json(); })
+      .then(function (data) {
+        row.status = "Processed";
+        row.detections = data.detections.length;
+        renderScans();
+        renderLiveResult(data);
+        toast((data.is_demo_mode ? "Simulation" : "Live model") + ": " + data.detections.length + " detection(s) found");
+      })
+      .catch(function (err) {
+        row.status = "Processed";
+        renderScans();
+        toast("Live Analysis API unreachable — showing simulated ingestion instead");
+        simulateUpload(filename || "uploaded_scan.png");
+        console.warn("[JalNiriksh] live analysis failed:", err);
+      });
+  }
+
+  function analyzeSample(name, btn) {
+    if (btn) btn.disabled = true;
+    fetch(API_BASE + "/api/analyze-sample/" + encodeURIComponent(name), { method: "POST" })
+      .then(function (r) { if (!r.ok) throw new Error("API " + r.status); return r.json(); })
+      .then(function (data) {
+        renderLiveResult(data);
+        toast((data.is_demo_mode ? "Simulation" : "Live model") + ": " + data.detections.length + " detection(s) found in " + name);
+      })
+      .catch(function (err) {
+        toast("Could not reach the Live Analysis API for " + name);
+        console.warn("[JalNiriksh] sample analysis failed:", err);
+      })
+      .finally(function () { if (btn) btn.disabled = false; });
+  }
+
+  function renderSampleButtons(names) {
+    var row = $("#sampleRow");
+    row.innerHTML = "";
+    names.forEach(function (name) {
+      var label = name.replace(/^sample_/, "").replace(/\.[a-z]+$/, "").replace(/_/g, " ");
+      var btn = el("button", { type: "button", text: "▶ " + label });
+      btn.addEventListener("click", function () { analyzeSample(name, btn); });
+      row.appendChild(btn);
+    });
+  }
+
+  function checkBackend() {
+    var dot = $("#liveDot"), text = $("#liveStatusText");
+    fetch(API_BASE + "/api/health", { cache: "no-store" })
+      .then(function (r) { if (!r.ok) throw new Error(); return r.json(); })
+      .then(function (health) {
+        backendOnline = true;
+        dot.className = "dot online";
+        text.textContent = health.demo_mode
+          ? "Live Analysis API connected (model weights not found — running in simulation mode)"
+          : "Live Analysis API connected — real YOLO-ESI model loaded";
+        return fetch(API_BASE + "/api/samples").then(function (r) { return r.json(); });
+      })
+      .then(function (data) { if (data && data.samples) renderSampleButtons(data.samples); })
+      .catch(function () {
+        backendOnline = false;
+        dot.className = "dot offline";
+        text.textContent = "Live Analysis API offline — uploads will use simulated ingestion (see backend/README)";
+      });
+  }
+
+  /* ---------------------------------------------------------------- */
   /* Helpers                                                           */
   /* ---------------------------------------------------------------- */
 
@@ -510,10 +618,10 @@
     });
     dz.addEventListener("drop", function (e) {
       var f = e.dataTransfer.files[0];
-      simulateUpload(f ? f.name : "uploaded_scan.xtf");
+      if (f) analyzeBlob(f, f.name);
     });
     fi.addEventListener("change", function () {
-      if (fi.files[0]) simulateUpload(fi.files[0].name);
+      if (fi.files[0]) analyzeBlob(fi.files[0], fi.files[0].name);
       fi.value = "";
     });
 
@@ -521,6 +629,8 @@
       location.hash = "#/scans";
       setTimeout(function () { simulateUpload("VSKP_SSS_" + new Date().toISOString().slice(0, 10) + "_live.xtf"); }, 200);
     });
+
+    checkBackend();
 
     $("#exportCsv").addEventListener("click", exportCsv);
     $("#exportGeojson").addEventListener("click", exportGeojson);
