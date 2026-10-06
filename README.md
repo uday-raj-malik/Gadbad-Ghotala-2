@@ -45,6 +45,7 @@ explored without a live sonar feed or backend — see [Demo Data](#demo-data).
 - [Feasibility &amp; Viability](#feasibility--viability)
 - [Impact &amp; Market](#impact--market)
 - [Research &amp; References](#research--references)
+- [Not Yet Implemented](#not-yet-implemented)
 - [Getting Started](#getting-started)
 - [Project Structure](#project-structure)
 - [Team](#team)
@@ -70,8 +71,8 @@ The console is a single-page app with six views, reachable from the sidebar:
 | 📊 **Overview** | Live KPI tiles (items detected, pending review, cleanliness index, active recovery routes), a detections-by-type chart, the cleanliness trend, and a recent-detections table. |
 | ⇪ **Sonar Scans** | Drag-and-drop (or click-to-browse) scan intake, plus one-click sample buttons. Runs the real model via the [Live Analysis](#live-analysis-real-model) API when it's running; falls back to simulated ingestion otherwise. |
 | ◎ **Review Queue** | Every detection the AI scored 40–80% confidence, shown as a card with its type guess, depth and hazard. Confirm/Reject updates the dataset live and feeds the retraining loop. |
-| ⬢ **Ocean Map** | Seabed plot of every item with a type-coded marker and accuracy-circle ring, a legend with live counts, per-type filter chips, and a click-through detail panel. |
-| ↝ **Recovery Planner** | Confirmed items ranked by hazard score, each auto-assigned a Diver (shallow) or ROV (deep) method, with a "mark collected" action that updates the cleanliness index. |
+| ⬢ **Ocean Map** | A real **CesiumJS 3D globe** (OpenStreetMap imagery, no API key) centered on a real offshore survey point near Visakhapatnam Port, with a type-coded marker + accuracy-circle ring per item, a legend with live counts, per-type filter chips, and a click-through detail panel with live-computed lat/long. |
+| ↝ **Recovery Planner** | Confirmed items ranked by hazard score, each auto-assigned a Diver (shallow) or ROV (deep) method. "Plan Route" sends the confirmed items to a real **Google OR-Tools** solver, which returns a genuinely optimised visiting order and total distance — not a hardcoded sequence. |
 | ▤ **Reports** | Full cleanliness-index history, plus one-click CSV and GeoJSON export of the confirmed detections. |
 
 Underneath, the product is designed around these capabilities:
@@ -139,6 +140,17 @@ same view falls back to simulated ingestion so the console still demos standalon
 | `GET /api/samples` | Lists the bundled sample sonar images. |
 | `POST /api/analyze` | Multipart image upload → real detections + annotated image. |
 | `POST /api/analyze-sample/{name}` | Runs the same pipeline on a bundled sample. |
+| `POST /api/plan-route` | Real OR-Tools TSP solve over confirmed items → visiting order, per-leg and total distance. |
+
+### Route planning (also real)
+
+`backend/routing.py` solves an actual single-vehicle closed-tour TSP with
+[Google OR-Tools](https://developers.google.com/optimization/routing) (`PATH_CHEAPEST_ARC` first
+solution + Guided Local Search, 2s time limit) over the confirmed items' coordinates. The
+**Recovery Planner**'s "Plan Route" button calls this live — the returned order and distance
+come from the solver, not a hardcoded sort. Today it runs on the demo dataset's synthetic
+survey-area coordinates; wiring it to real GPS detections is a one-line change once
+[XTF ingestion](#not-yet-implemented) lands.
 
 ## User Flow
 
@@ -186,11 +198,16 @@ Corrects image geometry, evens out brightness, reduces grainy noise, then tiles 
 combined. False positives are filtered, each item gets a calibrated score, and uncertain items
 go to human review.
 
-**Location &amp; 3D map** — Items get a GPS position, depth and an error circle, with duplicates
-merged, shown on a CesiumJS map alongside currents, coverage and depth.
+**Location &amp; 3D map** — ✅ **Real**: the Ocean Map view is an actual CesiumJS globe. Today's
+positions come from the demo dataset's synthetic coordinates mapped onto a real offshore patch
+of sea near Visakhapatnam Port (verified by reverse-geocoding, not placed on land); currents and
+bathymetry layers aren't wired in. Duplicate-merging and GPS extraction from real sonar nav data
+depend on [XTF ingestion](#not-yet-implemented), not yet built.
 
-**Recovery &amp; segregation** — Items are ranked by hazard and routed with OR-Tools; recovered
-waste is sorted on deck for recyclers and retrains the model.
+**Recovery &amp; segregation** — ✅ **Real**: items are ranked by hazard, and "Plan Route" calls
+an actual Google OR-Tools solver (see [Live Analysis](#live-analysis-real-model)) for the visiting
+order. On-deck sorting/recycler handover is a physical workflow this software doesn't touch; the
+retraining loop is not yet built.
 
 ## Tech Stack
 
@@ -200,11 +217,11 @@ waste is sorted on deck for recyclers and retrains the model.
 
 > This repository implements the **operator console frontend** (`HTML`, `CSS`, `JavaScript`,
 > no build step) plus a **real `Python` / `FastAPI` / `ONNX Runtime` / `OpenCV` backend**
-> (`backend/`) that runs actual trained-model inference — see
-> [Live Analysis](#live-analysis-real-model). `PyTorch`, `Ultralytics YOLO`, `CesiumJS`,
-> `PostgreSQL` and `Google OR-Tools` reflect the architecture designed for the full platform
-> (segmentation training, 3D geospatial map, route optimisation, persistence) and aren't wired
-> up yet — see [Technical Approach](#technical-approach) for the target design.
+> (`backend/`) that runs actual trained-model inference, a real **`CesiumJS`** 3D globe, and a
+> real **`Google OR-Tools`** route solver — see [Live Analysis](#live-analysis-real-model).
+> `PyTorch`, `Ultralytics YOLO` (segmentation training) and `PostgreSQL` (persistence) reflect
+> the architecture designed for the full platform and aren't wired up yet — see
+> [Not Yet Implemented](#not-yet-implemented).
 
 ## Feasibility &amp; Viability
 
@@ -292,6 +309,22 @@ just harbours.
 > scratch for this submission. Closing that gap (and moving from box detection to
 > segmentation) is the next real training milestone.
 
+## Not Yet Implemented
+
+Being direct about what this build does and doesn't do yet:
+
+| Claimed in the pitch | Status |
+|---|---|
+| Real sonar debris detection | ✅ Real — see [Live Analysis](#live-analysis-real-model) |
+| 3D ocean map | ✅ Real — CesiumJS, see above |
+| Recovery route planning | ✅ Real — OR-Tools, see above |
+| Reads raw XTF/JSF sonar files with embedded GPS nav | ❌ Not built. The team's KADAL project has an XTF parser (`pyxtf`-based) and slant-range geo-referencing; porting it here needs a real sample `.xtf` file to test against, which wasn't available in this pass. Today's backend takes plain JPG/PNG/TIFF images. |
+| Duplicate-detection merging across overlapping scans | ❌ Not built |
+| PostgreSQL persistence / ground-truth database | ❌ Not built — all state is in-memory (frontend) or stateless-per-request (backend) |
+| Closed-loop retraining from analyst confirmations | ❌ Not built |
+| Fine-grained waste-material classes (plastic/net/tyre) | ❌ Not built — current model classes are acoustic-signature categories, see [Live Analysis](#live-analysis-real-model) |
+| KML/NMEA export | ❌ Not built — CSV/GeoJSON export exists on the demo dataset |
+
 ## Getting Started
 
 This is a static site with no build step.
@@ -323,6 +356,7 @@ For the real model instead of the bundled demo dataset, also start the backend �
 │   ├── app.py               # Endpoints: health, model/info, samples, analyze, analyze-sample
 │   ├── config.py             # Model path discovery, class map, thresholds
 │   ├── download_model.py     # Fetches the real ONNX weights from Hugging Face
+│   ├── routing.py            # Real OR-Tools TSP solver for recovery routes
 │   ├── inference/            # ONNX engine, pre/post-processing, acoustic physics
 │   ├── utils/annotator.py    # Draws detection overlays on the returned image
 │   ├── static/samples/       # Bundled real sonar images for one-click demo

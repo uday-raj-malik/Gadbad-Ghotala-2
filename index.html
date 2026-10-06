@@ -9,6 +9,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cesium@1.146.0/Build/Cesium/Widgets/widgets.css" />
+<script src="https://cdn.jsdelivr.net/npm/cesium@1.146.0/Build/Cesium/Cesium.js"></script>
 <link rel="stylesheet" href="assets/css/style.css" />
 </head>
 <body>
@@ -201,10 +203,10 @@
 
         <div class="map-layout">
           <div class="map-canvas-wrap">
-            <div class="map-canvas" id="mapCanvas">
-              <div class="map-grid" aria-hidden="true"></div>
-              <!-- pins injected by JS -->
-            </div>
+            <div id="cesiumContainer" class="cesium-container"></div>
+            <p class="muted-text cesium-credit">3D globe: <a href="https://cesium.com/platform/cesiumjs/" target="_blank" rel="noopener">CesiumJS</a> ·
+              imagery © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors —
+              no terrain/imagery API key used, so relief and aerial detail are intentionally minimal.</p>
           </div>
           <aside class="map-side">
             <div class="panel-head"><h2>Legend</h2></div>
@@ -224,6 +226,21 @@
           <h1>Recovery Planner</h1>
           <p>Confirmed items ranked by hazard, routed shallow-first for divers and deep for the ROV.</p>
         </div>
+
+        <div class="live-status" id="routeStatus">
+          <span class="dot" id="routeDot"></span>
+          <span id="routeStatusText">Checking route-planning API…</span>
+          <button class="btn btn-primary btn-sm" id="planRouteBtn" style="margin-left:auto" disabled>▶ Plan Route (OR-Tools)</button>
+        </div>
+
+        <div class="panel" id="routeResultPanel" hidden>
+          <div class="panel-head">
+            <h2>Optimised Recovery Route</h2>
+            <span class="badge badge-good" id="routeMeta"></span>
+          </div>
+          <ol class="route-order" id="routeOrderList"></ol>
+        </div>
+
         <div class="table-wrap">
           <table class="data-table" id="recoveryTable">
             <thead><tr><th>#</th><th>Type</th><th>Hazard</th><th>Depth</th><th>Method</th><th>Status</th></tr></thead>

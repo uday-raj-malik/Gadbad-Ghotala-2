@@ -138,6 +138,7 @@
 
   function checkBackend() {
     var dot = $("#liveDot"), text = $("#liveStatusText");
+    var routeDot = $("#routeDot"), routeText = $("#routeStatusText"), routeBtn = $("#planRouteBtn");
     fetch(API_BASE + "/api/health", { cache: "no-store" })
       .then(function (r) { if (!r.ok) throw new Error(); return r.json(); })
       .then(function (health) {
@@ -146,6 +147,9 @@
         text.textContent = health.demo_mode
           ? "Live Analysis API connected (model weights not found — running in simulation mode)"
           : "Live Analysis API connected — real YOLO-ESI model loaded";
+        routeDot.className = "dot online";
+        routeText.textContent = "Route-planning API connected — OR-Tools solver ready";
+        routeBtn.disabled = false;
         return fetch(API_BASE + "/api/samples").then(function (r) { return r.json(); });
       })
       .then(function (data) { if (data && data.samples) renderSampleButtons(data.samples); })
@@ -153,7 +157,58 @@
         backendOnline = false;
         dot.className = "dot offline";
         text.textContent = "Live Analysis API offline — uploads will use simulated ingestion (see backend/README)";
+        routeDot.className = "dot offline";
+        routeText.textContent = "Route-planning API offline — start backend/ to compute a real OR-Tools route";
+        routeBtn.disabled = true;
       });
+  }
+
+  function renderRouteOrder(result, items) {
+    var panel = $("#routeResultPanel");
+    panel.hidden = false;
+    $("#routeMeta").textContent = result.total_distance_km + " km · " + result.solver;
+    var list = $("#routeOrderList");
+    list.innerHTML = "";
+    list.appendChild(el("li", { class: "boat" }, [el("span", { class: "step-num", text: "⚓" }), el("span", { text: "Boat" })]));
+    result.order.forEach(function (id, i) {
+      var item = items.find(function (it) { return it.id === id; });
+      list.appendChild(el("span", { class: "arrow", text: "→" }));
+      list.appendChild(el("li", {}, [
+        el("span", { class: "step-num", text: String(i + 1) }),
+        el("span", { text: typeInfo(item.type).label + " (" + item.depth.toFixed(1) + "m)" })
+      ]));
+    });
+    list.appendChild(el("span", { class: "arrow", text: "→" }));
+    list.appendChild(el("li", { class: "boat" }, [el("span", { class: "step-num", text: "⚓" }), el("span", { text: "Boat" })]));
+  }
+
+  function planRouteNow() {
+    var btn = $("#planRouteBtn");
+    var confirmedItems = detections.filter(function (d) { return d.status === "confirmed" || d.status === "collected"; });
+    if (confirmedItems.length < 2) {
+      toast("Need at least 2 confirmed items to plan a route");
+      return;
+    }
+    btn.disabled = true;
+    btn.textContent = "Solving…";
+    fetch(API_BASE + "/api/plan-route", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        boat_start: { x: 0, y: 0 },
+        items: confirmedItems.map(function (d) { return { id: d.id, x: d.x, y: d.y }; })
+      })
+    })
+      .then(function (r) { if (!r.ok) throw new Error("API " + r.status); return r.json(); })
+      .then(function (result) {
+        renderRouteOrder(result, confirmedItems);
+        toast("Route solved: " + result.order.length + " stops, " + result.total_distance_km + " km");
+      })
+      .catch(function (err) {
+        toast("Route planning API unreachable");
+        console.warn("[JalNiriksh] route planning failed:", err);
+      })
+      .finally(function () { btn.disabled = false; btn.textContent = "▶ Plan Route (OR-Tools)"; });
   }
 
   /* ---------------------------------------------------------------- */
@@ -450,8 +505,89 @@
   }
 
   /* ---------------------------------------------------------------- */
-  /* Map                                                               */
+  /* Map — real CesiumJS 3D globe, no Ion token required               */
   /* ---------------------------------------------------------------- */
+
+  // Visakhapatnam Port approach, India — survey area mapped onto real lat/long.
+  // (Verified offshore in the Bay of Bengal via reverse-geocode, not over the city.)
+  var HARBOUR_LAT = 17.68, HARBOUR_LON = 83.35;
+  var SURVEY_WIDTH_KM = 1.6, SURVEY_HEIGHT_KM = 1.0;
+  var KM_PER_DEG_LAT = 110.574;
+  var KM_PER_DEG_LON = 111.320 * Math.cos(HARBOUR_LAT * Math.PI / 180);
+
+  function demoToLatLon(x, y) {
+    var dxKm = ((x - 50) / 100) * SURVEY_WIDTH_KM;
+    var dyKm = ((50 - y) / 100) * SURVEY_HEIGHT_KM; // invert: smaller y (top) = further north
+    return {
+      lat: HARBOUR_LAT + dyKm / KM_PER_DEG_LAT,
+      lon: HARBOUR_LON + dxKm / KM_PER_DEG_LON
+    };
+  }
+
+  var cesiumViewer = null;
+  var cesiumEntities = {}; // detection id -> {point, ring}
+
+  function initCesium() {
+    if (cesiumViewer || typeof Cesium === "undefined") return;
+    Cesium.Ion.defaultAccessToken = undefined;
+
+    cesiumViewer = new Cesium.Viewer("cesiumContainer", {
+      terrainProvider: new Cesium.EllipsoidTerrainProvider(),
+      imageryProvider: false,
+      baseLayerPicker: false,
+      geocoder: false,
+      homeButton: false,
+      sceneModePicker: true,
+      navigationHelpButton: false,
+      animation: false,
+      timeline: false,
+      fullscreenButton: false,
+      infoBox: false,
+      selectionIndicator: false,
+      shouldAnimate: false
+    });
+    cesiumViewer.imageryLayers.addImageryProvider(
+      new Cesium.OpenStreetMapImageryProvider({ url: "https://tile.openstreetmap.org/" })
+    );
+    cesiumViewer.scene.globe.enableLighting = false;
+    cesiumViewer.scene.skyAtmosphere.show = true;
+
+    // Survey coverage footprint
+    var corner = demoToLatLon(0, 0), corner2 = demoToLatLon(100, 100);
+    cesiumViewer.entities.add({
+      rectangle: {
+        coordinates: Cesium.Rectangle.fromDegrees(
+          Math.min(corner.lon, corner2.lon), Math.min(corner.lat, corner2.lat),
+          Math.max(corner.lon, corner2.lon), Math.max(corner.lat, corner2.lat)
+        ),
+        material: Cesium.Color.fromCssColorString("#1baf7a").withAlpha(0.08),
+        outline: true,
+        outlineColor: Cesium.Color.fromCssColorString("#1baf7a").withAlpha(0.4)
+      }
+    });
+
+    cesiumViewer.camera.setView({
+      destination: Cesium.Cartesian3.fromDegrees(HARBOUR_LON, HARBOUR_LAT, 1800)
+    });
+
+    cesiumViewer.screenSpaceEventHandler.setInputAction(function (click) {
+      var picked = cesiumViewer.scene.pick(click.position);
+      if (picked && picked.id && picked.id.jalniriksh_detection_id != null) {
+        selectedPinId = picked.id.jalniriksh_detection_id;
+        var d = detections.find(function (x) { return x.id === selectedPinId; });
+        if (d) showMapDetail(d);
+        refreshMapSelectionStyle();
+      }
+    }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
+  }
+
+  function refreshMapSelectionStyle() {
+    Object.keys(cesiumEntities).forEach(function (id) {
+      var isSel = Number(id) === selectedPinId;
+      cesiumEntities[id].point.outlineWidth = isSel ? 3 : 1;
+      cesiumEntities[id].point.pixelSize = isSel ? 16 : 12;
+    });
+  }
 
   function renderMapLegend() {
     var list = $("#mapLegend");
@@ -474,34 +610,82 @@
       chip.addEventListener("click", function () {
         if (activeFilters.has(t)) { activeFilters.delete(t); chip.classList.remove("active"); }
         else { activeFilters.add(t); chip.classList.add("active"); }
-        renderMapPins();
+        applyMapFilters();
       });
       wrap.appendChild(chip);
     });
   }
 
-  function renderMapPins() {
-    var canvas = $("#mapCanvas");
-    $all(".map-pin", canvas).forEach(function (p) { p.remove(); });
-    detections.filter(function (d) { return activeFilters.has(d.type); }).forEach(function (d) {
-      var pin = el("div", {
-        class: "map-pin" + (d.id === selectedPinId ? " selected" : ""),
-        style: "left:" + d.x + "%; top:" + d.y + "%; background:" + typeInfo(d.type).color +
-          (d.status === "pending" ? "; opacity:.72" : ""),
-        title: typeInfo(d.type).label + " · " + d.confidence + "%"
-      });
-      pin.addEventListener("click", function () {
-        selectedPinId = d.id;
-        renderMapPins();
-        showMapDetail(d);
-      });
-      canvas.appendChild(pin);
+  function applyMapFilters() {
+    detections.forEach(function (d) {
+      var ent = cesiumEntities[d.id];
+      if (!ent) return;
+      var visible = activeFilters.has(d.type);
+      ent.point.show = visible;
+      ent.ring.show = visible;
     });
+  }
+
+  function renderMapPins() {
+    if (!cesiumViewer) return;
+    cesiumViewer.entities.removeAll();
+    cesiumEntities = {};
+
+    var corner = demoToLatLon(0, 0), corner2 = demoToLatLon(100, 100);
+    cesiumViewer.entities.add({
+      rectangle: {
+        coordinates: Cesium.Rectangle.fromDegrees(
+          Math.min(corner.lon, corner2.lon), Math.min(corner.lat, corner2.lat),
+          Math.max(corner.lon, corner2.lon), Math.max(corner.lat, corner2.lat)
+        ),
+        material: Cesium.Color.fromCssColorString("#1baf7a").withAlpha(0.08),
+        outline: true,
+        outlineColor: Cesium.Color.fromCssColorString("#1baf7a").withAlpha(0.4)
+      }
+    });
+
+    detections.forEach(function (d) {
+      var ll = demoToLatLon(d.x, d.y);
+      var color = Cesium.Color.fromCssColorString(typeInfo(d.type).color);
+      var accuracyRadiusM = 15 + (100 - d.confidence) * 1.2; // tighter circle = higher confidence
+
+      var ringEntity = cesiumViewer.entities.add({
+        position: Cesium.Cartesian3.fromDegrees(ll.lon, ll.lat),
+        ellipse: {
+          semiMinorAxis: accuracyRadiusM,
+          semiMajorAxis: accuracyRadiusM,
+          material: color.withAlpha(0.12),
+          outline: true,
+          outlineColor: color.withAlpha(0.6),
+          height: 0
+        }
+      });
+
+      var pointEntity = cesiumViewer.entities.add({
+        position: Cesium.Cartesian3.fromDegrees(ll.lon, ll.lat, 2),
+        point: {
+          pixelSize: 12,
+          color: color,
+          outlineColor: Cesium.Color.WHITE,
+          outlineWidth: 1,
+          heightReference: Cesium.HeightReference.NONE,
+          disableDepthTestDistance: Number.POSITIVE_INFINITY
+        },
+        jalniriksh_detection_id: d.id
+      });
+      pointEntity.jalniriksh_detection_id = d.id;
+
+      cesiumEntities[d.id] = { point: pointEntity.point, ring: ringEntity.ellipse };
+    });
+
+    applyMapFilters();
+    cesiumViewer.zoomTo(cesiumViewer.entities, new Cesium.HeadingPitchRange(0, Cesium.Math.toRadians(-45), 1400));
   }
 
   function showMapDetail(d) {
     var box = $("#mapDetail");
     var ti = typeInfo(d.type);
+    var ll = demoToLatLon(d.x, d.y);
     box.innerHTML =
       '<dl>' +
       "<dt>Type</dt><dd>" + ti.label + "</dd>" +
@@ -509,13 +693,19 @@
       "<dt>Depth</dt><dd>" + d.depth.toFixed(1) + " m</dd>" +
       "<dt>Hazard</dt><dd>" + d.hazard + " / 5</dd>" +
       "<dt>Status</dt><dd>" + d.status + "</dd>" +
+      "<dt>Lat, Lon</dt><dd>" + ll.lat.toFixed(5) + ", " + ll.lon.toFixed(5) + "</dd>" +
       "</dl>";
   }
 
   function renderMap() {
+    initCesium();
     renderMapLegend();
     renderMapFilters();
-    renderMapPins();
+    // Cesium needs a layout pass before sizing correctly on a freshly-shown view
+    setTimeout(function () {
+      renderMapPins();
+      if (cesiumViewer) cesiumViewer.resize();
+    }, 50);
   }
 
   /* ---------------------------------------------------------------- */
@@ -634,6 +824,7 @@
 
     $("#exportCsv").addEventListener("click", exportCsv);
     $("#exportGeojson").addEventListener("click", exportGeojson);
+    $("#planRouteBtn").addEventListener("click", planRouteNow);
 
     $("#harbourSelect").addEventListener("change", function (e) {
       toast("Switched to " + e.target.value + " (demo data shown)");

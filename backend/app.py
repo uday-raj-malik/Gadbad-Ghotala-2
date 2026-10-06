@@ -14,17 +14,19 @@ Run from the repository root:
 import io
 import base64
 import os
-from typing import Optional
+from typing import Optional, Dict, List
 
 import cv2
 import numpy as np
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from pydantic import BaseModel
 
 from backend.config import ALLOWED_EXTENSIONS, MAX_UPLOAD_SIZE_MB, SAMPLES_DIR
 from backend.inference.engine import YOLOESIInferenceEngine
 from backend.utils.annotator import draw_annotations
+from backend.routing import plan_route
 
 app = FastAPI(
     title="JalNiriksh AI — Live Analysis API",
@@ -115,6 +117,27 @@ async def analyze(file: UploadFile = File(...)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Inference failed: {e}")
 
+    return JSONResponse(result)
+
+
+class RouteItem(BaseModel):
+    id: int
+    x: float
+    y: float
+
+
+class RouteRequest(BaseModel):
+    boat_start: Dict[str, float] = {"x": 0.0, "y": 0.0}
+    items: List[RouteItem]
+
+
+@app.post("/api/plan-route")
+def api_plan_route(req: RouteRequest):
+    items = [it.model_dump() for it in req.items]
+    try:
+        result = plan_route(req.boat_start, items)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Routing failed: {e}")
     return JSONResponse(result)
 
 

@@ -202,6 +202,20 @@ a { color: var(--blue-dark); }
 .live-result-grid img { width: 100%; border-radius: 9px; border: 1px solid var(--border); background: #000; }
 @media (max-width: 900px) { .live-result-grid { grid-template-columns: 1fr; } }
 
+/* Route planning */
+.route-order { display: flex; flex-wrap: wrap; gap: 10px; padding-left: 0; list-style: none; counter-reset: route; }
+.route-order li {
+  display: flex; align-items: center; gap: 8px; background: var(--surface-alt);
+  border: 1px solid var(--border); border-radius: 999px; padding: 6px 14px; font-size: 0.85rem;
+}
+.route-order li .step-num {
+  width: 20px; height: 20px; border-radius: 50%; background: var(--blue); color: #fff;
+  font-size: 0.7rem; font-weight: 700; display: flex; align-items: center; justify-content: center; flex: none;
+}
+.route-order li.boat { background: var(--surface-deep); color: #fff; border-color: transparent; }
+.route-order li.boat .step-num { background: var(--aqua); }
+.route-order .arrow { color: var(--muted); }
+
 /* Review queue */
 .review-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
 .review-card {
@@ -223,24 +237,12 @@ a { color: var(--blue-dark); }
 /* Map */
 .map-layout { display: grid; grid-template-columns: 1fr 300px; gap: 18px; align-items: start; }
 .map-canvas-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); padding: 10px; }
-.map-canvas {
+.cesium-container {
   position: relative; width: 100%; aspect-ratio: 16 / 10; border-radius: 9px; overflow: hidden;
-  background: linear-gradient(180deg, #0b3254, #06263f 70%);
+  background: #06263f;
 }
-.map-grid {
-  position: absolute; inset: 0;
-  background-image: linear-gradient(rgba(255,255,255,0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.06) 1px, transparent 1px);
-  background-size: 8.333% 10%;
-}
-.map-pin {
-  position: absolute; width: 14px; height: 14px; border-radius: 50%; transform: translate(-50%, -50%);
-  border: 2px solid rgba(255,255,255,0.85); cursor: pointer; box-shadow: 0 0 0 4px rgba(255,255,255,0.08);
-}
-.map-pin::after {
-  content: ""; position: absolute; inset: -14px; border-radius: 50%;
-  border: 1px dashed rgba(255,255,255,0.35);
-}
-.map-pin.selected { outline: 2px solid #fff; outline-offset: 2px; }
+.cesium-credit { margin: 8px 2px 0; font-size: 0.74rem; }
+.cesium-credit a { color: var(--muted); }
 
 .map-side { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); padding: 18px; }
 .legend-list { list-style: none; padding: 0; margin: 0 0 18px; display: grid; gap: 8px; }
