@@ -21,26 +21,26 @@ This matters more than usual here, so it's up front instead of buried:
 
 | Capability | Status |
 |---|---|
-| Sonar debris detection (ONNX model + acoustic physics) | **Real** — see [Backend](#backend) |
+| Sonar debris detection (ONNX model + acoustic physics) | **Real**; see [Backend](#backend) |
 | 3D map (CesiumJS) | **Real** |
 | Recovery route optimisation (OR-Tools) | **Real** |
 | Operator console UI (upload, review queue, map, planner, reports) | **Real**, running against a bundled demo survey by default |
-| Raw XTF/JSF sonar file ingestion with embedded GPS | Not built — needs a real sample file to implement against |
-| Fine-grained waste-material classes (plastic/net/tyre, vs. generic debris) | Not built — see model notes below |
-| Persistence (Postgres), retraining loop | Not built — state is in-memory / stateless per request |
+| Raw XTF/JSF sonar file ingestion with embedded GPS | Not built: needs a real sample file to implement against |
+| Fine-grained waste-material classes (plastic/net/tyre, vs. generic debris) | Not built: see model notes below |
+| Persistence (Postgres), retraining loop | Not built: state is in-memory / stateless per request |
 
 ## Features
 
-- **Overview** — KPI tiles, detections-by-type chart, cleanliness-index trend
-- **Sonar Scans** — drag-and-drop upload or one-click sample scans, run through the real model
-- **Review Queue** — confirm/reject detections the model scored as uncertain
-- **Ocean Map** — CesiumJS 3D globe with per-item markers, accuracy-circle rings, filters
-- **Recovery Planner** — hazard ranking + a real OR-Tools-optimised collection route
-- **Reports** — cleanliness trend history, CSV/GeoJSON export
+- **Overview**: KPI tiles, detections-by-type chart, cleanliness-index trend
+- **Sonar Scans**: drag-and-drop upload or one-click sample scans, run through the real model
+- **Review Queue**: confirm/reject detections the model scored as uncertain
+- **Ocean Map**: CesiumJS 3D globe with per-item markers, accuracy-circle rings, filters
+- **Recovery Planner**: hazard ranking plus a real OR-Tools-optimised collection route
+- **Reports**: cleanliness trend history, CSV/GeoJSON export
 
 ## Backend
 
-`backend/` is a FastAPI service that actually runs inference — not a mock.
+`backend/` is a FastAPI service that actually runs inference, not a mock.
 
 **Model**: YOLOv8-Nano + Squeeze-and-Excitation attention ("YOLO-ESI"), 3.03M params, ONNX
 FP16, test mAP50 ≈ 0.60. Trained on multi-source side-scan sonar data (NOAA debris surveys +
@@ -49,9 +49,9 @@ synthetic/augmented targets) during an earlier phase of this project. Weights ar
 on setup, not committed to the repo.
 
 **Pipeline**: letterboxed tiling → ONNX inference → Soft-NMS → acoustic-physics
-post-processing (`backend/inference/acoustic_physics.py`) — peak-backscatter material
+post-processing (`backend/inference/acoustic_physics.py`): peak-backscatter material
 classification (metallic vs. synthetic), shadow-based height estimation, and a 0–100 threat
-score — then an annotated image + structured JSON.
+score, then an annotated image + structured JSON.
 
 **Note on classes**: the model's trained classes are acoustic-signature categories
 (`unknown_debris`, `wreck`, `mine`, `airplane`), relabeled in `backend/app.py` for display.
@@ -60,7 +60,7 @@ for fine-grained waste typing; it isn't yet fine-tuned on a labeled marine-litte
 
 **Routing**: `backend/routing.py` solves a real single-vehicle closed-tour TSP with
 [OR-Tools](https://developers.google.com/optimization/routing) over confirmed items'
-coordinates — an actual solve, not a sort.
+coordinates: an actual solve, not a sort.
 
 ### API
 
@@ -130,7 +130,7 @@ Python · FastAPI · ONNX Runtime · OpenCV · OR-Tools · HTML/CSS/JS · Cesium
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+MIT. See [LICENSE](LICENSE).
 
 ---
 
