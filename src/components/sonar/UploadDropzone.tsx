@@ -5,9 +5,11 @@ import { cn } from '@/lib/utils';
 export interface PickedFile {
   name: string;
   sizeMb: number;
+  /** The real File, kept so a live backend can actually analyze the bytes. */
+  raw: File;
 }
 
-const OK = ['xtf', 'jsf', 'csv'];
+const OK = ['xtf', 'jsf', 'csv', 'jpg', 'jpeg', 'png', 'tif', 'tiff'];
 
 interface Props {
   file: PickedFile | null;
@@ -26,11 +28,11 @@ export default function UploadDropzone({ file, onFile, disabled, compact }: Prop
     if (!f) return;
     const ext = f.name.split('.').pop()?.toLowerCase() ?? '';
     if (!OK.includes(ext)) {
-      setError(`".${ext}" files are not supported. Use XTF, JSF or CSV.`);
+      setError(`".${ext}" files are not supported. Use XTF, JSF, CSV, or an image (JPG/PNG/TIFF) for the live model.`);
       return;
     }
     setError(null);
-    onFile({ name: f.name, sizeMb: Math.max(1, Math.round(f.size / 1048576)) });
+    onFile({ name: f.name, sizeMb: Math.max(1, Math.round(f.size / 1048576)), raw: f });
   };
 
   if (file) {
@@ -66,9 +68,9 @@ export default function UploadDropzone({ file, onFile, disabled, compact }: Prop
         )}
       >
         <FileUp size={compact ? 20 : 24} className={over ? 'text-sonar' : 'text-mute'} aria-hidden />
-        <p className="text-[13px]">Drop XTF / JSF sonar file here or <span className="text-sonar underline underline-offset-2">Browse files</span></p>
-        {!compact && <p className="text-xs text-dim">XTF, JSF or CSV · up to 2 GB per file</p>}
-        <input ref={input} type="file" accept=".xtf,.jsf,.csv" className="hidden" onChange={(e) => take(e.target.files?.[0])} />
+        <p className="text-[13px]">Drop a sonar file here or <span className="text-sonar underline underline-offset-2">Browse files</span></p>
+        {!compact && <p className="text-xs text-dim">XTF, JSF, CSV, or a JPG/PNG/TIFF for the live model</p>}
+        <input ref={input} type="file" accept=".xtf,.jsf,.csv,.jpg,.jpeg,.png,.tif,.tiff" className="hidden" onChange={(e) => take(e.target.files?.[0])} />
       </div>
       {error && (
         <p role="alert" className="mt-2 flex items-center gap-1.5 text-xs text-hz-high">

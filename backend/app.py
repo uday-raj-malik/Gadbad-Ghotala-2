@@ -121,13 +121,14 @@ async def analyze(file: UploadFile = File(...)):
 
 
 class RouteItem(BaseModel):
-    id: int
+    id: str
     x: float
     y: float
 
 
 class RouteRequest(BaseModel):
     boat_start: Dict[str, float] = {"x": 0.0, "y": 0.0}
+    boat_end: Optional[Dict[str, float]] = None
     items: List[RouteItem]
 
 
@@ -135,7 +136,7 @@ class RouteRequest(BaseModel):
 def api_plan_route(req: RouteRequest):
     items = [it.model_dump() for it in req.items]
     try:
-        result = plan_route(req.boat_start, items)
+        result = plan_route(req.boat_start, items, req.boat_end)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Routing failed: {e}")
     return JSONResponse(result)

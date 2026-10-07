@@ -1,6 +1,7 @@
 import type { Detection, RecoveryMission, RouteStop } from '@/types';
-import { BASE_POINT, QUAY_POINT, distKm } from '@/lib/geo';
+import { BASE_POINT, QUAY_POINT, distKm, AREA } from '@/lib/geo';
 import { sleep } from '@/lib/utils';
+import { planRouteLive } from '@/services/liveApi';
 
 type P = { u: number; v: number };
 
@@ -10,7 +11,7 @@ function tourLength(pts: P[]): number {
   return t;
 }
 
-/** Nearest-neighbour seed + 2-opt refinement. Stand-in for the OR-Tools VRP solver. */
+/** Nearest-neighbour seed + 2-opt refinement. Used when the real OR-Tools backend is unreachable. */
 function solve(start: P, nodes: Detection[], end: P): Detection[] {
   const left = nodes.slice();
   const order: Detection[] = [];
@@ -43,11 +44,7 @@ export function estimateNaiveKm(ids: string[], all: Detection[]): number {
   return tourLength([BASE_POINT, ...pts, QUAY_POINT]);
 }
 
-/** POST /recovery/route */
-export async function generateRoute(ids: string[], all: Detection[], speedKn: number): Promise<RecoveryMission> {
-  await sleep(1300);
-  const nodes = ids.map((id) => all.find((d) => d.id === id)).filter((d): d is Detection => !!d);
-  const ordered = solve(BASE_POINT, nodes, QUAY_POINT);
+function buildStops(ordered: Detection[], speedKn: number): { stops: RouteStop[]; distanceKm: number; durationMin: number } {
   const kmh = speedKn * 1.852;
   const stops: RouteStop[] = [];
   let prev: P = BASE_POINT;
@@ -69,6 +66,36 @@ export async function generateRoute(ids: string[], all: Detection[], speedKn: nu
   stops.push({ kind: 'end', label: QUAY_POINT.label, u: QUAY_POINT.u, v: QUAY_POINT.v, legKm: +last.toFixed(2), legMin: Math.round((last / kmh) * 60) });
   const distanceKm = +stops.reduce((a, s) => a + s.legKm, 0).toFixed(1);
   const durationMin = stops.reduce((a, s) => a + s.legMin, 0);
+  return { stops, distanceKm, durationMin };
+}
+
+/**
+ * POST /recovery/route. Tries the real OR-Tools solver in backend/routing.py
+ * first (u, v scaled to real km via the survey's AREA dimensions so the
+ * reported distance matches this app's own distKm()); falls back to the
+ * local nearest-neighbour + 2-opt heuristic if the backend is unreachable.
+ */
+export async function generateRoute(ids: string[], all: Detection[], speedKn: number): Promise<RecoveryMission> {
+  const nodes = ids.map((id) => all.find((d) => d.id === id)).filter((d): d is Detection => !!d);
+  const toKm = (p: P) => ({ x: p.u * AREA.widthKm, y: p.v * AREA.heightKm });
+
+  let ordered: Detection[];
+  let solverName = 'Nearest-neighbour + 2-opt (OR-Tools backend unreachable)';
+  try {
+    const result = await planRouteLive(
+      toKm(BASE_POINT),
+      toKm(QUAY_POINT),
+      nodes.map((d) => ({ id: d.id, ...toKm(d) })),
+    );
+    const byId = new Map(nodes.map((d) => [d.id, d]));
+    ordered = result.order.map((id) => byId.get(id)).filter((d): d is Detection => !!d);
+    solverName = result.solver;
+  } catch {
+    await sleep(300);
+    ordered = solve(BASE_POINT, nodes, QUAY_POINT);
+  }
+
+  const { stops, distanceKm, durationMin } = buildStops(ordered, speedKn);
   return {
     id: `RM-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 900) + 100)}`,
     name: 'Recovery mission',
@@ -79,7 +106,7 @@ export async function generateRoute(ids: string[], all: Detection[], speedKn: nu
     naiveDistanceKm: +estimateNaiveKm(ids, all).toFixed(1),
     durationMin,
     highRiskCount: nodes.filter((n) => n.hazard === 'high').length,
-    solver: 'Nearest-neighbour + 2-opt (mock for OR-Tools)',
+    solver: solverName,
   };
 }
 

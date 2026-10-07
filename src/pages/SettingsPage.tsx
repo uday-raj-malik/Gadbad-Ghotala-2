@@ -1,8 +1,9 @@
-import { useMemo, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { RotateCcw } from 'lucide-react';
 import { useApp } from '@/store/AppStore';
 import { DEFAULT_SETTINGS } from '@/data/mock';
-import { API_BASE, USE_MOCK } from '@/services/http';
+import { API_BASE } from '@/services/http';
+import { isBackendOnline } from '@/services/liveApi';
 import PageHeader from '@/components/ui/PageHeader';
 import Panel from '@/components/ui/Panel';
 import Button from '@/components/ui/Button';
@@ -10,6 +11,15 @@ import Switch from '@/components/ui/Switch';
 
 export default function SettingsPage() {
   const { settings, updateSettings, detections, survey, toast } = useApp();
+  const [liveOnline, setLiveOnline] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+    isBackendOnline().then((ok) => alive && setLiveOnline(ok));
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   // Live preview of what the thresholds do to the current detections.
   const impact = useMemo(() => {
@@ -98,11 +108,15 @@ export default function SettingsPage() {
         <Panel title="System information">
           <dl className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-2 text-[13px]">
             <Info k="Version" v="JalNiriksh AI 0.9.0 (prototype)" />
-            <Info k="Detection model" v="YOLO segmentation + anomaly + shadow analysis" />
+            <Info k="Detection model" v="YOLOv8-ESI (ONNX) + acoustic physics (material, shadow, threat score)" />
             <Info k="Sensor" v={`${survey?.sensor ?? '—'} · ${survey?.frequencyKhz ?? '—'} kHz`} />
             <Info k="Survey ID" v={survey?.id ?? '—'} />
-            <Info k="Data source" v={USE_MOCK ? 'Mock services (in-browser)' : 'FastAPI backend'} />
+            <Info
+              k="Live Analysis API"
+              v={liveOnline === null ? 'Checking…' : liveOnline ? 'Connected — real inference + routing active' : 'Offline — Sonar/Recovery pages use simulated fallbacks'}
+            />
             <Info k="API base" v={API_BASE} />
+            <Info k="Detections / waste source" v="Seeded demo survey (in-browser); no persistence backend yet" />
           </dl>
         </Panel>
       </div>
