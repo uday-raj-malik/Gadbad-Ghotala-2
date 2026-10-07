@@ -7,8 +7,9 @@ Thumbs.db
 .idea/
 *.swp
 
-# Node (if a static server / tooling is added later)
+# Node / frontend
 node_modules/
+dist/
 npm-debug.log*
 
 # Python / backend

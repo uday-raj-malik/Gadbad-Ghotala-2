@@ -1,137 +1,84 @@
-# JalNiriksh AI
+# JalNiriksh AI — frontend prototype
 
-AI-assisted underwater debris detection and recovery planning for side-scan sonar surveys.
+Operational platform for detecting and recovering underwater waste from side-scan sonar.
+Two environments: an ocean-tech presentation shell at `/` and the operations dashboard at `/app/*`.
+React + TypeScript + Vite + Tailwind + Lucide + Recharts. All data is mocked in the browser.
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white)
-![FastAPI](https://img.shields.io/badge/FastAPI-backend-009688?logo=fastapi&logoColor=white)
-![No build step](https://img.shields.io/badge/Frontend-vanilla%20JS-F7DF1E?logo=javascript&logoColor=black)
-
-JalNiriksh AI is an operator console for finding and recovering underwater waste (ghost
-nets, plastic, drums, metal debris) from side-scan sonar surveys. It combines a real
-ONNX-based detector with acoustic-physics post-processing, a 3D map, and OR-Tools route
-planning, wrapped in a single-page operator UI.
-
-Originally built for Smart India Hackathon 2026 (Team Gadbad Ghotala), this repo is now
-maintained as a working prototype rather than a static pitch.
-
-## What's real vs. demo
-
-This matters more than usual here, so it's up front instead of buried:
-
-| Capability | Status |
-|---|---|
-| Sonar debris detection (ONNX model + acoustic physics) | **Real**; see [Backend](#backend) |
-| 3D map (CesiumJS) | **Real** |
-| Recovery route optimisation (OR-Tools) | **Real** |
-| Operator console UI (upload, review queue, map, planner, reports) | **Real**, running against a bundled demo survey by default |
-| Raw XTF/JSF sonar file ingestion with embedded GPS | Not built: needs a real sample file to implement against |
-| Fine-grained waste-material classes (plastic/net/tyre, vs. generic debris) | Not built: see model notes below |
-| Persistence (Postgres), retraining loop | Not built: state is in-memory / stateless per request |
-
-## Features
-
-- **Overview**: KPI tiles, detections-by-type chart, cleanliness-index trend
-- **Sonar Scans**: drag-and-drop upload or one-click sample scans, run through the real model
-- **Review Queue**: confirm/reject detections the model scored as uncertain
-- **Ocean Map**: CesiumJS 3D globe with per-item markers, accuracy-circle rings, filters
-- **Recovery Planner**: hazard ranking plus a real OR-Tools-optimised collection route
-- **Reports**: cleanliness trend history, CSV/GeoJSON export
-
-## Backend
-
-`backend/` is a FastAPI service that actually runs inference, not a mock.
-
-**Model**: YOLOv8-Nano + Squeeze-and-Excitation attention ("YOLO-ESI"), 3.03M params, ONNX
-FP16, test mAP50 ≈ 0.60. Trained on multi-source side-scan sonar data (NOAA debris surveys +
-synthetic/augmented targets) during an earlier phase of this project. Weights are hosted on
-[Hugging Face](https://huggingface.co/Dinoman1221/sonarvision-yolov8-esi-v6) and downloaded
-on setup, not committed to the repo.
-
-**Pipeline**: letterboxed tiling → ONNX inference → Soft-NMS → acoustic-physics
-post-processing (`backend/inference/acoustic_physics.py`): peak-backscatter material
-classification (metallic vs. synthetic), shadow-based height estimation, and a 0–100 threat
-score, then an annotated image + structured JSON.
-
-**Note on classes**: the model's trained classes are acoustic-signature categories
-(`unknown_debris`, `wreck`, `mine`, `airplane`), relabeled in `backend/app.py` for display.
-The acoustic material classifier ("metallic" vs. "synthetic") is what currently stands in
-for fine-grained waste typing; it isn't yet fine-tuned on a labeled marine-litter dataset.
-
-**Routing**: `backend/routing.py` solves a real single-vehicle closed-tour TSP with
-[OR-Tools](https://developers.google.com/optimization/routing) over confirmed items'
-coordinates: an actual solve, not a sort.
-
-### API
-
-| Endpoint | Description |
-|---|---|
-| `GET /api/health` | Whether the real model loaded or it's running in simulation mode |
-| `GET /api/model/info` | Model architecture, input size, execution provider, weights checksum |
-| `GET /api/samples` | List bundled sample sonar images |
-| `POST /api/analyze` | Multipart image upload → detections + annotated image |
-| `POST /api/analyze-sample/{name}` | Run the pipeline on a bundled sample |
-| `POST /api/plan-route` | OR-Tools TSP solve → visiting order + distance |
-
-### Setup
+## Run
 
 ```bash
-python -m venv .venv && source .venv/Scripts/activate   # .venv\Scripts\activate on Windows
-pip install -r backend/requirements.txt
-python -m backend.download_model      # fetches ONNX weights (~5.9 MB)
-python -m uvicorn backend.app:app --reload --port 8000
+npm install
+npm run dev        # http://localhost:5173
+npm run build      # type-check + production build
 ```
 
-With the API running, the console's status pill turns green and sample-scan buttons appear
-under **Sonar Scans**. Without it, the console falls back to simulated ingestion so the UI
-still demos standalone.
+If `npm install` crashes in the esbuild postinstall on your machine, use `npm install --ignore-scripts`.
 
-## Frontend
+## Demo script
 
-Static site, no build step.
+0. **Landing (`/`)**: procedural underwater scene, wordmark cut by the waterline, glass analytics panel, heatmap, hotspots. *Open Operations Dashboard* plays a transition into `/app`.
+1. **Overview**: KPIs, live workflow strip (Sonar → … → Recycling), map, priority list.
+2. **Sonar Analysis**: pick any file (.xtf/.jsf/.csv), click *Analyze Scan*, watch the pipeline, review the new detections.
+3. **Detections**: filter, open GN-024, confirm / reject / mark for recovery. *Start review queue* walks the pending list.
+4. **3D Seabed Map**: orbit the seabed, toggle layers, select GN-024, *Add to Recovery Plan*.
+5. **Recovery Planning**: adjust the selection, *Generate Optimal Route*, dispatch.
+6. **Waste & Recycling**: advance each category through sorting, weighing, manifest and handover.
+7. **Reports**: charts plus real CSV / Markdown / JSON downloads.
+8. **Settings**: change the 85% / 60% thresholds and watch the review queue impact.
 
-```bash
-git clone https://github.com/uday-raj-malik/Gadbad-Ghotala-2.git
-cd Gadbad-Ghotala-2
-npx serve .   # or just open index.html
-```
-
-## Tech stack
-
-Python · FastAPI · ONNX Runtime · OpenCV · OR-Tools · HTML/CSS/JS · CesiumJS
-
-## Project structure
+## Architecture
 
 ```
-.
-├── index.html                 # App shell: sidebar nav, topbar, six routed views
-├── assets/
-│   ├── css/style.css          # Dashboard design system
-│   └── js/main.js             # Router, demo dataset, charts, map + planner logic, API calls
-├── backend/
-│   ├── app.py                 # FastAPI endpoints
-│   ├── config.py               # Model path discovery, class map, thresholds
-│   ├── download_model.py       # Fetches ONNX weights from Hugging Face
-│   ├── routing.py               # OR-Tools TSP solver
-│   ├── inference/               # ONNX engine, pre/post-processing, acoustic physics
-│   ├── utils/annotator.py       # Draws detection overlays
-│   ├── static/samples/          # Bundled sample sonar images
-│   └── requirements.txt
-├── LICENSE
-└── README.md
+src/
+  components/shell/  presentation shell: OceanShell, OceanBackdrop (canvas water), GlassPanel, TopNavigation, HeroSection, AnalyticsPanel, HeatmapPreview
+  types/        domain models (Detection, Survey, SonarScan, RecoveryMission, WasteRecord, MapObject, Report)
+  data/         mock data (156 seeded detections, survey, scans, settings)
+  services/     the ONLY place the UI talks to a backend
+  store/        React context: detections, mission, settings, toasts, notifications
+  components/   ui/ layout/ map/ sonar/ detections/ overview/ recovery/ waste/ reports/
+  pages/        one file per route
+  lib/          geo, bathymetry, procedural sonar renderer, helpers
 ```
 
-## Roadmap
+### Swapping mocks for FastAPI
 
-- Parse raw XTF/JSF sonar files (with embedded GPS nav) instead of plain images
-- Fine-tune on a labeled marine-litter dataset for plastic/net/tyre-level classes
-- Persist detections and review outcomes (Postgres) instead of in-memory state
-- Closed-loop retraining from analyst confirmations
+Every function in `src/services/*` is async and mirrors an endpoint (the endpoint is in the doc comment above it,
+e.g. `GET /detections`, `PATCH /detections/{id}/status`, `POST /recovery/route`).
+Set `VITE_API_BASE` and `VITE_USE_MOCK=false`, then replace each `mock(...)` body with a `fetch`.
+Component and page code does not change. `analyzeScan` takes an `onEvent` callback: feed it from SSE / websocket
+job-progress events instead of the timed sequence.
 
-## License
+### Replacing the 3D view with Cesium
 
-MIT. See [LICENSE](LICENSE).
+`components/map/Seabed3D.tsx` is a canvas renderer behind a small interface: `objects`, `selectedId`, `onSelect`,
+`layers`, `mission`, `errorExaggeration`, and a handle with `zoomIn / zoomOut / reset`. Implement a Cesium component
+with the same props and swap the import in `pages/Map3DPage.tsx`. Objects use normalised `u, v` coordinates plus
+`latitude / longitude`, so they map directly to Cesium cartographics.
 
----
+## Notes
 
-Team Gadbad Ghotala · Smart India Hackathon 2026 (PS SIH26195)
+- shadcn/ui was not installed; the primitives in `components/ui` follow its conventions (`cn()`, variants).
+- The route "solver" is nearest-neighbour + 2-opt, standing in for OR-Tools.
+- Sonar imagery, bathymetry and currents are procedurally generated; no external assets or network calls.
+
+## Using a real photograph
+
+The shell's water is drawn on a canvas so the repo has no image assets. To use a photo, pass `imageSrc` to `OceanBackdrop` (via `OceanShell`);
+rays, snow and the waterline are still drawn on top, and the veil keeps the type readable.
+
+## Polish pass: what to show, and where it lives
+
+| Moment | Where | Notes |
+| --- | --- | --- |
+| 3D seabed | `pages/Map3DPage.tsx`, `components/map/Seabed3D.tsx`, `ObjectCallout.tsx` | Click a marker: anchored card with depth, detection confidence, error radius, hazard, recommended action, **Add to recovery plan**. Legend filters categories. Recovered objects are hidden (toggle in the layer rail). |
+| Sonar AI detection | `pages/SonarPage.tsx`, `components/sonar/*` | Large viewer (raw / AI overlay, masks, boxes, shadows, anomaly regions, legend). Right panel lists uncertain detections first with inline Confirm / Reject. |
+| Human review | `components/detections/ReviewPanel.tsx`, `ReviewTrack.tsx`, `DetectionDetailPanel.tsx` | AI detection → detection confidence → human review → outcome. Evidence (crop, mask, shadow) sits next to the decision. |
+| Recovery route | `components/recovery/RecoveryPlanner.tsx`, `components/map/RecoveryRoute.tsx` | Dotted selection-order path before generating; animated optimised route after, with START/END, numbered stops and a time-stamped sequence. |
+| GIS layer | `components/layout/Topbar.tsx`, `StatusBar.tsx`, `hooks/useFocusOn.ts` | Header LAT / LON / DEPTH follow the selected object. Status bar shows datum, sensor and survey coverage. |
+
+Hooks: `useRoutePreview` (route for maps without writing to the store) and `useFocusOn` (publishes a selection to the header readout).
+
+Definitions worth knowing before a Q&A:
+- **AI confidence** (KPI) is the mean detection confidence over verified (confirmed + recovered) detections.
+- **False-positive rate** is the share of reviewed outcomes that a person rejected. Candidates the pipeline discarded before review are reported separately as "False positives filtered".
+- **Vertical exaggeration** in the 3D view is computed from the scene scale (about x34), not a label.
